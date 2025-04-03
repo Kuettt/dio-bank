@@ -23,7 +23,7 @@ def _list_posts():
     posts = db.session.execute(db.select(Post)).scalars()
     
     
-    return[{'user':post.author, "title":post.title, "body":post.body, "created_at":post.created.strftime("%d/%m/%Y %H:%M")} for post in posts]
+    return[{'id': post.id,'user':post.author, "title":post.title, "body":post.body, "created_at":post.created.strftime("%d/%m/%Y %H:%M")} for post in posts]
 
 @app.route("/", methods=["GET", "POST"])
 @jwt_required()
@@ -47,16 +47,20 @@ def delete_post(post_id:int):
 
 @app.route("/<int:post_id>", methods=["PATCH"])
 @jwt_required()
-@require_permission("admin")
-def update_post(post_id:int):
-    data = request.json
+def update_post(post_id):
     post = db.get_or_404(Post, post_id)
-    mapper = inspect(post)
+    data = request.json
+    
+    #inspeciona os metadados da classe Post
+    columns = inspect(Post)
 
-    for column in mapper.attrs:
+    # verifica cada coluna da tabela
+    for column in columns.attrs:
+        # se a coluna estiver em data, ele permite
         if column.key in data:
+            # isto é semelhante a post.column.key = data[column.key]
             setattr(post, column.key, data[column.key])
 
-    
+
     db.session.commit()
-    return [{'user':post.author, "title":post.title, "body":post.body, "created_at":post.created.strftime("%d/%m/%Y %H:%M")}]
+    return [{'id': post_id,'user':post.author, "title":post.title, "body":post.body, "created_at":post.created.strftime("%d/%m/%Y %H:%M")}]
