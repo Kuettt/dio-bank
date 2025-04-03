@@ -13,7 +13,7 @@ def require_permission(role_name):
             if user.role.name != role_name:
                 return {"message": "User don't have access!"}, HTTPStatus.FORBIDDEN
         
-            return f(*args, *kwargs)
+            return f(*args, **kwargs)
 
         return wrapper
     

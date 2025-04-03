@@ -38,29 +38,30 @@ def handle_post():
 
 
 @app.route("/<int:post_id>", methods=["DELETE"])
+@jwt_required()
+@require_permission("admin")
 def delete_post(post_id:int):
     post = db.get_or_404(Post, post_id)
-
     db.session.delete(post)
     db.session.commit()
     return "", HTTPStatus.NO_CONTENT
 
+
+
 @app.route("/<int:post_id>", methods=["PATCH"])
 @jwt_required()
+@require_permission("admin")
 def update_post(post_id):
+
     post = db.get_or_404(Post, post_id)
-    data = request.json
     
-    #inspeciona os metadados da classe Post
-    columns = inspect(Post)
+    data = request.json
 
-    # verifica cada coluna da tabela
-    for column in columns.attrs:
-        # se a coluna estiver em data, ele permite
-        if column.key in data:
-            # isto é semelhante a post.column.key = data[column.key]
-            setattr(post, column.key, data[column.key])
+    allowed_fields = {"title", "body"}
 
+    for field in allowed_fields:
+        if field in allowed_fields:
+            setattr(post, field, data[field])
 
     db.session.commit()
     return [{'id': post_id,'user':post.author, "title":post.title, "body":post.body, "created_at":post.created.strftime("%d/%m/%Y %H:%M")}]
