@@ -44,3 +44,4 @@ def init_app(app):
     # quando encerrar a aplicação execute close_db
     app.teardown_appcontext(close_db)
     app.cli.add_command(init_db_command)
+
