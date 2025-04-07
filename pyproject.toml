@@ -16,7 +16,9 @@ dependencies = [
     "click (>=8.1.8,<9.0.0)",
     "flask-migrate (>=4.1.0,<5.0.0)",
     "pytest",
-    "pytest-mock (>=3.14.0,<4.0.0)"
+    "pytest-mock (>=3.14.0,<4.0.0)",
+    "psycopg2-binary",
+    "gunicorn"
 ]
 
 [tool.pytest.ini_options]
