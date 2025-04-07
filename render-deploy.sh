@@ -3,7 +3,10 @@
 
 set -e 
 
-poetry run flask --app src.app db upgrade
-poetry run gunicorn src.wsgi:app
+rm -rf migrations/
+poetry run flask db init
+poetry run flask db migrate -m "recriando tudo"
+poetry run flask db upgrade
+
 
 
