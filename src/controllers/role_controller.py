@@ -7,7 +7,6 @@ from http import HTTPStatus
 
 app = Blueprint("role", __name__, url_prefix="/roles")
 
-@jwt_required
 @app.route("/", methods=["POST"])
 def create_role():
     data = request.json
