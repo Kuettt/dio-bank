@@ -1,5 +1,5 @@
-# Created by https://www.toptal.com/developers/gitignore/api/flask,python
-# Edit at https://www.toptal.com/developers/gitignore?templates=flask,python
+# Created by https://www.toptal.com/developers/gitignore/api/python,flask
+# Edit at https://www.toptal.com/developers/gitignore?templates=python,flask
 
 ### Flask ###
 instance/*
@@ -251,7 +251,7 @@ cython_debug/
 
 ### Python Patch ###
 # Poetry local configuration file - https://python-poetry.org/docs/configuration/#local-configuration
-
+poetry.toml
 
 # ruff
 .ruff_cache/
@@ -259,4 +259,4 @@ cython_debug/
 # LSP config files
 pyrightconfig.json
 
-# End of https://www.toptal.com/developers/gitignore/api/flask,python
+# End of https://www.toptal.com/developers/gitignore/api/python,flask
