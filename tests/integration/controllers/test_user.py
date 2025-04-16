@@ -1,8 +1,9 @@
 import pytest
 from http import HTTPStatus
 from sqlalchemy import func
-from src.app import User, Role, db
-
+from src.models.user import User 
+from src.models.role import  Role
+from src.models.base import db
 
 
 def test_create_user(client, access_token):

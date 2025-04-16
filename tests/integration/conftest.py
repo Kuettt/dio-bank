@@ -3,11 +3,7 @@ from src.app import create_app, db, User, Role
 
 @pytest.fixture
 def app():
-    app = create_app({
-        "SECRET_KEY":"test", 
-        "SQLALCHEMY_DATABASE_URI":"sqlite:///",
-        "JWT_SECRET_KEY":"test"
-    })
+    app = create_app(enviroment="testing")
 
     # other setup can go here
     with app.app_context():

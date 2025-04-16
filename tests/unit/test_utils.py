@@ -1,5 +1,5 @@
 import pytest
-from src.utils import eleva_quadrado, require_permission
+from src.utils import eleva_quadrado, required_permission
 from http import HTTPStatus
 
 
@@ -22,7 +22,7 @@ def test_requires_permission_success(mocker):
     mock_user.role.name = "admin"
     mocker.patch("src.utils.get_jwt_identity") 
     mocker.patch("src.utils.db.get_or_404", return_value=mock_user) 
-    decorated_function = require_permission("admin")(lambda: "success")
+    decorated_function = required_permission("admin")(lambda: "success")
     
     #When
     result = decorated_function()
@@ -40,7 +40,7 @@ def test_requires_permission_failure(mocker):
     #When - O que é executado 
     mocker.patch("src.utils.get_jwt_identity")
     mocker.patch("src.utils.db.get_or_404", return_value=mock_user) 
-    decorated_function = require_permission("admin")(lambda: "success")
+    decorated_function = required_permission("admin")(lambda: "success")
     
     #Then - O que é verificado
     result = decorated_function()

@@ -1,4 +1,3 @@
-from src.app import db
 from http import HTTPStatus
 
 

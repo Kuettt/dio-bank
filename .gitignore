@@ -73,6 +73,7 @@ db.sqlite3-journal
 
 # Flask stuff:
 instance/
+instance/blog.sqlite
 
 # Scrapy stuff:
 .scrapy
@@ -258,5 +259,4 @@ poetry.toml
 
 # LSP config files
 pyrightconfig.json
-
 # End of https://www.toptal.com/developers/gitignore/api/python,flask

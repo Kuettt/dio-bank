@@ -1,91 +1,76 @@
 import os
 from datetime import datetime
 
-import click
 import sqlalchemy as sa
-from flask import Flask, current_app
+from flask import Flask, json
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager
-
+from src.models.base import db
+from flask_bcrypt import Bcrypt
+from flask_marshmallow import Marshmallow
+from apispec import APISpec
+from apispec.ext.marshmallow import MarshmallowPlugin
+from apispec_webframeworks.flask import FlaskPlugin
 
 class Base(DeclarativeBase):
     pass
 
-
-db = SQLAlchemy(model_class=Base)
 migrate= Migrate()
 jwt = JWTManager()
-
-class Role(db.Model):
-    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
-    name: Mapped[str] = mapped_column(sa.String, nullable=False)
-    user: Mapped[list["User"]] = relationship(back_populates="role")
-
-    def __repr__(self) -> str:
-        return f"Role(id={self.id!r}, name={self.username!r})"
-
-class User(db.Model):
-    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True, autoincrement=True)
-    username: Mapped[str] = mapped_column(sa.String, nullable=True, unique=True)
-    password: Mapped[str] = mapped_column(sa.String, nullable=False)
-    role_id: Mapped[int] = mapped_column(sa.ForeignKey("role.id"))
-    role: Mapped["Role"] = relationship(back_populates="user")
-    active: Mapped[bool] = mapped_column(sa.Boolean, default=True)
-
-    def __repr__(self) -> str:
-        return f"User(id={self.id!r}, username={self.username!r}, active={self.active!r})"
+bcrypt = Bcrypt()
+ma = Marshmallow()
+spec = APISpec(
+    title="DIO Bank",
+    version="1.0.0",
+    openapi_version = "3.0.4",
+    info=dict(description="DIO Bank API"),
+    plugins=[FlaskPlugin(), MarshmallowPlugin()],
+)
 
 
-class Post(db.Model):
-    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True, autoincrement=True)
-    title: Mapped[str] = mapped_column(sa.String, nullable=False)
-    body: Mapped[str] = mapped_column(sa.String, nullable=False)
-    created: Mapped[datetime] = mapped_column(sa.DateTime, default=lambda:datetime.now())
-    author_id: Mapped[int] = mapped_column(sa.ForeignKey("user.id"))
-    author: Mapped[str] = mapped_column(sa.ForeignKey("user.username"))
-
-    def __repr__(self) -> str:
-        return f"User(id={self.id!r}, title={self.title}, author={self.author}, author_id={self.author_id})"
-
-@click.command("init-db")
-def init_db_command():
-    # pois o db está pra fora da função, então existe a necessidade de chama-lo como global
-    global db
-    with current_app.app_context():
-        db.create_all()
-        click.echo("O banco de dados foi criado com sucesso!")
-
-
-def create_app(test_config=None):
-    # create and configure the app
+def create_app(environment=os.environ['ENVIRONMENT']):
     app = Flask(__name__, instance_relative_config=True)
-    app.config.from_mapping(
-        SECRET_KEY="dev", 
-        SQLALCHEMY_DATABASE_URI=os.environ["DATABASE_URL"],
-        JWT_SECRET_KEY = "super-secret",
-    )
-
-    if test_config is None:
-        # load the instance config, if it exists, when not testing
-        app.config.from_pyfile("config.py", silent=True)
-    else:
-        # load the test config if passed in
-        app.config.from_mapping(test_config)
-
-    app.cli.add_command(init_db_command)
-    # initializng flask sql-alchemy instance
+   
+    app.config.from_object(f"src.config.{environment.title()}Config")
+    try:
+        os.makedirs(app.instance_path)
+    except OSError:
+        pass
+    
+    #Inicializated extension
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
+    bcrypt.init_app(app)
+    ma.init_app(app)
 
-
-    #importanções de controllers devem ficar dentro do create_app
+    #registrated blueprints
     from src.controllers import user_controller, post_controller, auth, role_controller
-    
     app.register_blueprint(user_controller.app)
     app.register_blueprint(post_controller.app)
     app.register_blueprint(auth.app)
     app.register_blueprint(role_controller.app)
+
+    @app.route("/docs")
+    def docs():
+        return spec.path(view=user_controller.delete_user).path(view=user_controller.get_user).to_dict()
+
+    #exceptions returns
+    from werkzeug.exceptions import HTTPException
+    @app.errorhandler(HTTPException)
+    def handle_exception(e):
+        """Return JSON instead of HTML for HTTP errors."""
+        # start with the correct headers and status code from the error
+        response = e.get_response()
+        # replace the body with JSON
+        response.data = json.dumps({
+            "code": e.code,
+            "name": e.name,
+            "description": e.description,
+        })
+        response.content_type = "application/json"
+        return response
+
     return app

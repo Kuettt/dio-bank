@@ -1,54 +1,76 @@
-import src.views
 from sqlalchemy import inspect
-from flask import Blueprint, request, render_template
-from src.app import User, db
+from flask import Blueprint, request 
+from src.models import *
 from http import HTTPStatus
-from werkzeug.security import generate_password_hash
-from flask_jwt_extended import jwt_required, get_jwt_identity
-from src.utils import require_permission
+from src.app import bcrypt
+from src.views.user_schema import UserSchema, CreateUserSchema
+from marshmallow import ValidationError
+from flask_jwt_extended import jwt_required
+from src.utils import required_permission
 
 app = Blueprint("user", __name__, url_prefix="/users")
 
 def _create_user():
-    data = request.json
+    
+    user_schema = CreateUserSchema()
+    try:
+        data = user_schema.load(request.json, many=False)
+
+    except ValidationError as exc:
+        return exc.messages, HTTPStatus.UNPROCESSABLE_ENTITY
+    
     user = User(
        username=data["username"],
-       password=data["password"],
+       password=bcrypt.generate_password_hash(data["password"]),
        role_id=data["role_id"]
     ) 
 
     db.session.add(user)
     db.session.commit()
+
+    return user_schema.dump(user)
+
+@jwt_required()
+@required_permission("admin")
 def _list_users():
     query = db.select(User)
     users = db.session.execute(query).scalars()
-    return [{'id':user.id,
-             'username':user.username,
-             'role': {
-                 "id": user.role.id,
-                 "name": user.role.name
-             }
-            } 
-            for user in users
-            
-         ]
+    user_schema = UserSchema()
+    return user_schema.dump(users,many=True)
 
 
 @app.route("/", methods=["GET", "POST"])
-@jwt_required()
-@require_permission("admin")
 def list_create_users():
 
     if request.method == "POST":
-        _create_user()
-        return {"message": "User created"}, HTTPStatus.CREATED
+        return _create_user()
+        
     else:
         return {"user":_list_users()}
 
 @app.route("/<int:user_id>", methods=["GET"])
 def get_user(user_id):
+    """User detail view.
+    ---
+    get:
+      tags:
+        - user
+      parameters:
+        - in: path
+          name: user_id
+          schema: UserIdParameter 
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema: UserSchema
+          
+        
+    """   
     user = db.get_or_404(User, user_id)
-    return [{"id": user_id, "name": user.username, "active": user.active}]
+    user_schema = UserSchema()
+    return user_schema.dump(user)
 
 @app.route("/<int:user_id>", methods=["PATCH"])
 def update_user(user_id):
@@ -65,6 +87,26 @@ def update_user(user_id):
 
 @app.route("/<int:user_id>", methods=["DELETE"])
 def delete_user(user_id):
+    """User detail view.
+    ---
+    delete:
+      tags:
+        - user
+      parameters:
+        - in: path
+          name: user_id
+          schema: UserIdParameter 
+      responses:
+        204:
+          description: Delete a user
+          content:
+            application/json:
+              schema: UserSchema
+        404:
+          description: Not found user
+          
+        
+    """  
     user = db.get_or_404(User, user_id)
     db.session.delete(user)
     db.session.commit()
